@@ -1,9 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
 project(dart_dll VERSION 0.1.2)
-
-set(DARTSDK_ROOTDIR "${PROJECT_SOURCE_DIR}/../dart-sdk" CACHE FILEPATH "Directory that dart-sdk is cloned too")
-set(DART_DIR "${DARTSDK_ROOTDIR}/sdk")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -14,7 +11,7 @@ add_library(dart_dll SHARED
     isolate_setup.cpp
 )
 
-target_include_directories(dart_dll PUBLIC
+target_include_directories(dart_dll PRIVATE
     "${DART_DIR}/runtime"
 )
 
@@ -22,7 +19,13 @@ if(WIN32)
     set(LIB_PREFIX "lib")
 endif()
 
+cmake_path(ABSOLUTE_PATH DART_DIR NORMALIZE OUTPUT_VARIABLE DART_DIR)
+
 MESSAGE(STATUS "Dart SDK ${DART_DIR}")
+
+if(NOT EXISTS "${DART_DIR}/runtime/include/dart_api.h")
+MESSAGE(FATAL_ERROR "Missing Dart SDK or not found")
+endif()
 
 find_library(LIB_DART_DEBUG
     NAMES "${LIB_PREFIX}dart"
@@ -41,10 +44,6 @@ target_compile_definitions(dart_dll PRIVATE
 )
 
 if(WIN32)
-    set_property(TARGET dart_dll PROPERTY
-        MSVC_RUNTIME_LIBRARY "MultiThreaded"
-    )
-
     target_compile_definitions(dart_dll PRIVATE
         _HAS_EXCEPTIONS=0
         _SCL_SECURE=0
@@ -87,6 +86,23 @@ endif()
 
 if(LIB_DART_DEBUG) 
     target_link_libraries(dart_dll debug ${LIB_DART_DEBUG})
+else()
+    target_link_libraries(dart_dll debug ${LIB_DART_RELEASE})
 endif()
 
 target_link_libraries(dart_dll optimized ${LIB_DART_RELEASE})
+
+MESSAGE(STATUS "debug ${LIB_DART_DEBUG} optimized ${LIB_DART_RELEASE}")
+
+install(TARGETS dart_dll
+        EXPORT dart_dllTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+target_include_directories(dart_dll PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  # <prefix>/include/mylib
+)

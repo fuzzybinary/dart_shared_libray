@@ -18,6 +18,7 @@ FetchContent_MakeAvailable(cute)
 add_executable(realtime_example
 	main.cpp
 	drawable.cpp
+	exportfunc.cpp
 )
 
 target_include_directories(realtime_example PRIVATE
@@ -33,13 +34,14 @@ if(LINUX)
 endif()
 
 add_custom_command(TARGET realtime_example POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:realtime_example> $<TARGET_RUNTIME_DLLS:simple_example_ffi>
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/dart $<TARGET_FILE_DIR:realtime_example>/dart
-  COMMAND_EXPAND_LISTS
-)
+                    COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:realtime_example> $<TARGET_RUNTIME_DLLS:realtime_example>)
+add_custom_command(TARGET realtime_example POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/dart $<TARGET_FILE_DIR:realtime_example>/dart)
 
 target_link_libraries(realtime_example PUBLIC dart_dll cute)
 
 if (MSVC)
 	set_property(TARGET realtime_example PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:realtime_example>)	
 endif()
+
+set(EXECUTABLE_OUTPUT_PATH "${EXECUTABLE_OUTPUT_PATH}/realtime_example")
